@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
+  <title>Feedback Form</title>
+</head>
+<body>
+  <main class="card" aria-label="Feedback form">
+    <h1>We’d love your feedback</h1>
+    <p class="lead">Tell us what you think. This quick form helps us improve with clear, actionable feedback.</p>
+
+    <form id="feedbackForm" action="/submit-feedback" method="POST" novalidate>
+      <div class="grid" aria-label="Name and Email">
+        <div class="field">
+          <label for="name">Your name (optional)</label>
+          <input id="name" name="name" type="text" placeholder="Alex Doe" autocomplete="name" />
+        </div>
+
+        <div class="field">
+          <label for="email">Email (optional, for follow-up)</label>
+          <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+      </div>
+
+      <div class="field rating-section" aria-label="Rating">
+        <label>Overall experience</label>
+        <div class="rating" id="ratingStars" role="radiogroup" aria-label="Rating">
+          <button type="button" class="star" data-value="1" title="1 star" aria-checked="false" aria-label="1 star">☆</button>
+          <button type="button" class="star" data-value="2" title="2 stars" aria-checked="false" aria-label="2 stars">☆</button>
+          <button type="button" class="star" data-value="3" title="3 stars" aria-checked="false" aria-label="3 stars">☆</button>
+          <button type="button" class="star" data-value="4" title="4 stars" aria-checked="false" aria-label="4 stars">☆</button>
+          <button type="button" class="star" data-value="5" title="5 stars" aria-checked="false" aria-label="5 stars">☆</button>
+        </div>
+        <input type="hidden" name="rating" id="rating" value="0" />
+        <div class="rating-hint" id="ratingHint" aria-live="polite">Tap a star to rate (1-5)</div>
+      </div>
+
+      <div class="field" aria-label="NPS">
+        <label>Net Promoter Score (0-10)</label>
+        <div class="nps" aria-label="NPS slider">
+          <input type="range" id="nps" name="nps" min="0" max="10" value="5" />
+          <output id="npsValue" class="nps-value" for="nps">5</output>
+        </div>
+        <div class="hint" id="npsHint">0 = detractors, 10 = promoters</div>
+      </div>
+
+      <div class="field" aria-label="Category">
+        <label for="category">Category</label>
+        <select id="category" name="category" aria-label="Category">
+          <option value="Product">Product</option>
+          <option value="Service">Service</option>
+          <option value="Website" selected>Website</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="field" aria-label="Would you recommend?">
+        <label>Would you recommend us?</label>
+        <div class="options" role="group" aria-label="Would you recommend">
+          <label class="radio">
+            <input type="radio" name="recommend" value="Yes" required />
+            Yes
+          </label>
+          <label class="radio">
+            <input type="radio" name="recommend" value="No" />
+            No
+          </label>
+        </div>
+      </div>
+
+      <div class="field" aria-label="Feedback message">
+        <label for="message">Your feedback</label>
+        <textarea id="message" name="message" placeholder="What did you like or what could be improved?" required></textarea>
+        <span class="hint">Please be specific to help us improve.</span>
+      </div>
+
+      <div class="field consent" aria-label="Consent to store feedback">
+        <input id="consent" name="consent" type="checkbox" required />
+        <label for="consent">I understand that my feedback may be stored to improve services.</label>
+      </div>
+
+      <div class="error" id="formError" role="alert" aria-live="polite"></div>
+
+      <div id="success" class="success" role="status" aria-live="polite">
+        Thanks! Your feedback has been submitted.
+      </div>
+
+      <div class="actions" aria-label="Form actions">
+        <button class="btn" type="submit">Submit feedback</button>
+        <button class="btn secondary" type="reset">Reset</button>
+      </div>
+    </form>
+  </main>
+  
+  <script>
+    // Star rating interaction (accessible)
+    (function(){
+      const stars = Array.from(document.querySelectorAll('#ratingStars .star'));
+      const ratingInput = document.getElementById('rating');
+      const hint = document.getElementById('ratingHint');
+
+      function setRating(n){
+        ratingInput.value = String(n);
+        stars.forEach(star => {
+          const v = Number(star.dataset.value);
+          toActive(star, v <= n);
+        });
+        hint.textContent = n ? `Selected: ${n} star${n>1?'s':''}` : 'Tap a star to rate (1-5)';
+      }
+
+      function toActive(el, active){
+        if(active) el.classList.add('active');
+        else el.classList.remove('active');
+        el.setAttribute('aria-checked', active ? 'true' : 'false');
+      }
+
+      stars.forEach(star => {
+        star.addEventListener('mouseenter', () => {
+          const v = Number(star.dataset.value);
+          stars.forEach(s => toActive(s, Number(s.dataset.value) <= v));
+        });
+      });
+
+      // Reset highlight when leaving the rating area
+      document.getElementById('ratingStars').addEventListener('mouseleave', () => {
+        const current = Number(ratingInput.value) || 0;
+        stars.forEach(s => toActive(s, Number(s.dataset.value) <= current));
+      });
+
+      stars.forEach(star => {
+        star.addEventListener('click', () => {
+          const v = Number(star.dataset.value);
+          setRating(v);
+        });
+      });
+
+      // Initialize to 0 (no rating)
+      setRating(0);
+    })();
+
+    // NPS slider display
+    (function(){
+      const npsEl = document.getElementById('nps');
+      const npsValue = document.getElementById('npsValue');
+      function sync(){
+        npsValue.textContent = npsEl.value;
+        // Optional: color feedback based on value
+        const val = Number(npsEl.value);
+        const color = val >= 9 ? '#16a34a' : val >= 7 ? '#93c5fd' : val >= 4 ? '#f59e0b' : '#f87171';
+        npsEl.style.background = `linear-gradient(90deg, ${color} 0%, ${color} 100%)`;
+      }
+      npsEl.addEventListener('input', sync);
+      sync();
+    })();
+
+    // Basic form validation before submit
+    (function(){
+      const form = document.getElementById('feedbackForm');
+      const errorBox = document.getElementById('formError');
+      const successBox = document.getElementById('success');
+
+      form.addEventListener('submit', function(e){
+        // Simple checks: rating > 0, consent checked, message length
+        const rating = Number(document.getElementById('rating').value);
+        const consent = document.getElementById('consent').checked;
+        const message = document.getElementById('message').value.trim();
+
+        let messages = [];
+        if (!rating || rating < 1) messages.push('Please provide a rating (1-5).');
+        if (!consent) messages.push('Please acknowledge data storage consent.');
+        if (message.length < 10) messages.push('Feedback should be at least 10 characters.');
+
+        if (messages.length > 0){
+          e.preventDefault();
+          errorBox.textContent = messages.join(' ');
+          errorBox.classList.add('active');
+          errorBox.style.display = 'block';
+          // Focus the error for accessibility
+          errorBox.focus?.();
+        } else {
+          // Simulate submission success (for demo). In real usage, remove preventDefault and submit to server.
+          e.preventDefault();
+          errorBox.textContent = '';
+          errorBox.classList.remove('active');
+          successBox.style.display = 'block';
+          // Optional: reset form after a moment
+          setTimeout(() => {
+            form.reset();
+            // Reset rating visuals
+            document.querySelectorAll('#ratingStars .star').forEach(s => s.classList.remove('active'));
+            document.getElementById('rating').value = '0';
+            document.getElementById('nps').value = 5;
+            document.getElementById('npsValue').textContent = '5';
+            successBox.style.display = 'none';
+          }, 1800);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
